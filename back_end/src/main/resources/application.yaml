@@ -1,0 +1,81 @@
+spring:
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: ${DATABASE_URL:}
+    username: ${DATABASE_USERNAME:}
+    password: ${DATABASE_PASSWORD:}
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: true
+#    properties:
+#      hibernate:
+#        dialect: org.hibernate.dialect.MySQL8Dialect
+
+  mail :
+    host : smtp.gmail.com
+    port : 587
+    username : ${MAIL_USERNAME:}
+    password : ${MAIL_PASSWORD:}
+    properties:
+      mail:
+        smtp:
+          auth : true
+          starttls:
+            enable : true
+#          connectiontimeout : 100
+#          timeout : 100
+#          writetimeout : 100
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      ssl:
+        enabled: true
+  quartz:
+    job-store-type: jdbc
+    jdbc:
+      initialize-schema: never
+    properties:
+      org:
+        quartz:
+          threadPool:
+            threadCount: 7
+          jobStore:
+            driverDelegateClass : org.quartz.impl.jdbcjobstore.StdJDBCDelegate
+  jackson:
+    serialization:
+      FAIL_ON_EMPTY_BEANS: false
+
+  devtools:
+    restart:
+      enabled: false
+
+
+jwt:
+  signerKey: ${JWT_SIGNER_KEY:}
+  valid-duration: ${JWT_VALID_DURATION:}
+  refreshable-duration: ${JWT_REFRESH:}
+
+server:
+  port: 8080
+  servlet:
+    context-path: /auction
+    
+websocket:
+  endpoint: /ws
+
+allowed-origins: >
+  *
+
+cloudinary:
+  name: ${CLOUD_NAME:}
+  key: ${API_KEY:}
+  secret: ${API_SECRET:}
+
+auction:
+  schedule:
+    regis_duration: 2
+    start_delay: 3
+    auction_duration: 3
