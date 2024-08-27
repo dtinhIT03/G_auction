@@ -1,0 +1,11 @@
+button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    transition: background-color 0.3s;
+}
+
+button:focus {
+    outline: none;
+}

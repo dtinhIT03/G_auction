@@ -1,0 +1,24 @@
+:deep(.slick-slide) {
+  text-align: center;
+  height: 300px;
+  line-height: 300px;
+  overflow: hidden;
+}
+
+:deep(.slick-slide h3) {
+  color: #fff;
+}
+
+:deep(.ant-card-meta-description) {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.product-list {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 2rem;
+}
