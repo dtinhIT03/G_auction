@@ -38,7 +38,7 @@ build/
 front_end/node_modules
 front_end
 ## env file
-**/*/resources/file.env
+**/*.env
 .DS_Store
 **/.DS_Store
 
