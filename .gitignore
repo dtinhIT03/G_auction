@@ -36,7 +36,7 @@ build/
 .vscode/
 
 front_end/node_modules
-
+back_end/src/main/resources/*.env
 ## env file
 **/*.env
 .DS_Store
