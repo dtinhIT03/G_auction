@@ -26,6 +26,7 @@ import java.time.LocalDateTime;
 						@ColumnResult(name = "id", type = Long.class),
 						@ColumnResult(name = "productId", type = Long.class),
 						@ColumnResult(name = "title", type = String.class),
+						@ColumnResult(name = "ownerId", type = Long.class),
 						@ColumnResult(name = "description", type = String.class),
 						@ColumnResult(name = "image", type = String.class),
 						@ColumnResult(name = "createdAt", type = LocalDateTime.class),

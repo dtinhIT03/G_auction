@@ -8,6 +8,7 @@ import com.ghtk.auction.dto.response.auction.AuctionResponse;
 import com.ghtk.auction.dto.response.user.PageResponse;
 import com.ghtk.auction.entity.*;
 import com.ghtk.auction.enums.AuctionStatus;
+import com.ghtk.auction.enums.ProductCategory;
 import com.ghtk.auction.exception.AlreadyExistsException;
 import com.ghtk.auction.exception.ForbiddenException;
 import com.ghtk.auction.exception.NotFoundException;
@@ -27,9 +28,11 @@ import org.springframework.data.domain.Sort;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.sql.Timestamp;
 import java.time.Duration;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -70,6 +73,9 @@ public class AuctionServiceImpl implements AuctionService {
           .description(request.getDescription())
           .startBid(request.getStartBid())
           .pricePerStep(request.getPricePerStep())
+			.endRegistration(request.getEndRegistration())
+			.startTime(request.getStartTime())
+			.endTime(request.getEndTime())
           .createdAt(LocalDateTime.now())
           .status(AuctionStatus.PENDING)
           .build();
@@ -90,7 +96,7 @@ public class AuctionServiceImpl implements AuctionService {
 		return auctions.stream().map(
 				auction -> new AuctionResponse(
 						(Long) auction[0],
-						(Long)auction[1],
+						(Long) auction[1],
 						(String) auction[2],
 						(String) auction[3],
 						convertToLocalDateTime((Timestamp) auction[4]),
@@ -106,8 +112,9 @@ public class AuctionServiceImpl implements AuctionService {
 						(Long) auction[9],
 						(Long) auction[10],
 						(Long) auction[11],
-						(AuctionStatus.valueOf((String) auction[12]))
-				)).collect(Collectors.toList());
+						(AuctionStatus.valueOf((String) auction[12])),
+						(String) auction[13]
+						)).collect(Collectors.toList());
 		
 	}
 	
@@ -274,7 +281,7 @@ public class AuctionServiceImpl implements AuctionService {
 		LocalDateTime endRegistration = confirmDate.plus(Duration.ofMinutes(regisDuration));
 		LocalDateTime startTime = confirmDate.plus(Duration.ofMinutes(startDelay));
 		LocalDateTime endTime = startTime.plus(Duration.ofMinutes(auctionDuration));
-		
+
 		auction.setConfirmDate(confirmDate);
 		auction.setEndRegistration(endRegistration);
 		auction.setStartTime(startTime);
@@ -303,19 +310,25 @@ public class AuctionServiceImpl implements AuctionService {
 	
 	@Override
 	public void rejectAuction(Long auctionId) {
-		auctionRepository.findById(auctionId).orElseThrow(
+		Auction auction =  auctionRepository.findById(auctionId).orElseThrow(
 				() -> new NotFoundException("Khong tim thay phien dau gia nao trung voi Id")
 		);
-		auctionRepository.deleteById(auctionId);
+		auction.setStatus(AuctionStatus.REJECTED);
+		auction.setConfirmDate(LocalDateTime.now());
+		auctionRepository.save(auction);
 	}
 	
 	@Override
 	public PageResponse<AuctionListResponse> getAllAuctionByStatus(AuctionStatus auctionStatus, int pageNo, int pageSize) {
-		
+		Long total;
 		Pageable pageable = PageRequest.of(pageNo,pageSize);
-		
-		Long total = auctionRepository.countByStatus(auctionStatus);
-		
+		if(auctionStatus != null){
+			 total = auctionRepository.countByStatus(auctionStatus);
+
+		}else{
+			 total = auctionRepository.count();
+		}
+
 		List<AuctionListResponse> auctions = auctionRepository.getAllAuctionListResponse(pageable,auctionStatus);
 		PageResponse<AuctionListResponse> pageAuctionResponse = new PageResponse<>();
 		pageAuctionResponse.setPageNo(pageNo);
@@ -326,10 +339,59 @@ public class AuctionServiceImpl implements AuctionService {
 		
 		return pageAuctionResponse;
 	}
-	
+
+	@Override
+	public PageResponse<AuctionListResponse> searchAuctionAdvance(int pageNo, int pageSize, AuctionStatus status, ProductCategory category, String name, String startTime, String endTime) {
+		Long total;
+		Pageable pageable = PageRequest.of(pageNo,pageSize);
+		if(status != null){
+			total = auctionRepository.countByStatus(status);
+
+		}else{
+			total = auctionRepository.count();
+		}
+
+		List<AuctionListResponse> auctions = auctionRepository.searchAuctionAdvance(pageable,status,category,startTime,endTime,name);
+		PageResponse<AuctionListResponse> pageAuctionResponse = new PageResponse<>();
+		pageAuctionResponse.setPageNo(pageNo);
+		pageAuctionResponse.setPageSize(pageSize);
+		pageAuctionResponse.setTotalElements(total);
+		pageAuctionResponse.setLast(true);
+		pageAuctionResponse.setContent(auctions);
+
+		return pageAuctionResponse;
+	}
+
+	@Override
+	public Boolean checkUserRegistered(Long userId, Long auctionId) {
+		return userAuctionRepository.existsByUserIdAndAuctionId(userId,auctionId);
+	}
+
+	@Transactional
+	@Override
+	public String UnRegisterJoinAuction(Jwt jwt, Long id) {
+		Long userId = (Long)jwt.getClaims().get("id");
+		User user = userRepository.findById(userId).orElseThrow(
+				() ->  new NotFoundException("Khong tim thay user hop le")
+		);
+		Auction auction = auctionRepository.findById(id).orElseThrow(
+				() -> new NotFoundException("Khong tim thay product hop le")
+		);
+		if(!userAuctionRepository.existsByUserAndAuction(user, auction)) {
+			throw new AlreadyExistsException("Ban chua dang ki phien dau gia ");
+		}
+
+
+		userAuctionRepository.deleteUserAuctionByUserIdAndAuctionId(userId,id);
+		return "Ban huy dang ki dau gia thanh cong";
+	}
+
+
 	private LocalDateTime convertToLocalDateTime(Timestamp timestamp) {
 		return timestamp!=null ? timestamp.toLocalDateTime() : null;
 	}
+
+
 	
 	
 }

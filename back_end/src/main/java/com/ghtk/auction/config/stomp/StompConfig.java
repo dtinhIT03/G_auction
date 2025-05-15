@@ -24,6 +24,7 @@ import org.springframework.web.socket.config.annotation.WebSocketMessageBrokerCo
 // import org.springframework.web.socket.messaging.StompSubProtocolErrorHandler;
 // import org.springframework.web.socket.server.HandshakeInterceptor;
 import org.springframework.web.socket.config.annotation.WebSocketTransportRegistration;
+import org.springframework.web.socket.server.support.HttpSessionHandshakeInterceptor;
 
 @Configuration
 @EnableWebSocketMessageBroker
@@ -65,6 +66,7 @@ public class StompConfig implements WebSocketMessageBrokerConfigurer {
       registry.addEndpoint(stompEndpoint)
               .setAllowedOrigins(allowedOrigins)
               // .setHandshakeHandler(customHandshakeHandler)
+              .addInterceptors(new HttpSessionHandshakeInterceptor())
               .addInterceptors(applicationContext.getBean(ProtocolJwtHandshakeInterceptor.class));
       registry.setErrorHandler(applicationContext.getBean(StompSubProtocolExceptionHandler.class));
     }
@@ -104,8 +106,9 @@ public class StompConfig implements WebSocketMessageBrokerConfigurer {
                   .simpSubscribeDestMatchers("/topic/auction/*/control").authenticated()
                   .simpSubscribeDestMatchers("/topic/auction/*/notifications").authenticated()
                   .simpSubscribeDestMatchers("/topic/auction/*/bids").authenticated()
-                  .simpSubscribeDestMatchers("/topic/auction/*/comments").authenticated()
-                  .simpDestMatchers("/app/auction/**").hasRole("USER")
+                  .simpSubscribeDestMatchers("/topic/auction/*/comments").authenticated()                  .simpSubscribeDestMatchers("/topic/auction/*/comments").authenticated()
+                  .simpSubscribeDestMatchers("/topic/auction/*/newEndTime").authenticated()
+              .simpDestMatchers("/app/auction/**").hasRole("USER")
                   //.simpTypeMatchers(MessageType.MESSAGE).denyAll()
                   .anyMessage().denyAll(); 
 

@@ -10,6 +10,7 @@ import com.ghtk.auction.dto.response.product.ProductListResponse;
 import com.ghtk.auction.dto.response.user.PageResponse;
 import com.ghtk.auction.entity.Product;
 import com.ghtk.auction.enums.ProductCategory;
+import com.ghtk.auction.enums.ProductStatus;
 import com.ghtk.auction.service.ProductService;
 import com.ghtk.auction.utils.AppConstants;
 import lombok.AccessLevel;
@@ -39,11 +40,12 @@ public class ProductController {
 	}
 	
 	@GetMapping("/get-my-all")
-	public ResponseEntity<ApiResponse<List<ProductResponse>>> getAll(
+	public ResponseEntity<ApiResponse<PageResponse<ProductResponse>>> getAll(
 			@RequestParam(value = "page_no", defaultValue = AppConstants.DEFAULT_PAGE_NUMBER, required = false) int pageNo,
-			@RequestParam(value = "page_size", defaultValue = AppConstants.DEFAULT_PAGE_SIZE, required = false) int pageSize
+			@RequestParam(value = "page_size", defaultValue = AppConstants.DEFAULT_PAGE_SIZE, required = false) int pageSize,
+			@RequestParam(value = "status", required = true) String status
 	) {
-		return ResponseEntity.ok(ApiResponse.success(productService.getAllMyProduct(pageNo, pageSize)));
+		return ResponseEntity.ok(ApiResponse.success(productService.getAllMyProductPagination(pageNo, pageSize,status)));
 	}
 	
 	@GetMapping("/get-my-by-category")
@@ -84,7 +86,7 @@ public class ProductController {
 	}
 	
 	@GetMapping("/{id}")
-	public ResponseEntity<ApiResponse<Product>> getProduct(@PathVariable Long id) {
+	public ResponseEntity<ApiResponse<ProductResponse>> getProduct(@PathVariable Long id) {
 		return ResponseEntity.ok(ApiResponse.success(productService.getById(id)));
 	}
 	
@@ -108,21 +110,33 @@ public class ProductController {
 	public ResponseEntity<ApiResponse<PageResponse<ProductResponse>>> getProductsByCategory(
 			@RequestParam(value = "pageNo", defaultValue = AppConstants.DEFAULT_PAGE_NUMBER, required = false) int pageNo,
 			@RequestParam(value = "pageSize", defaultValue = AppConstants.DEFAULT_PAGE_SIZE, required = false) int pageSize,
-			@RequestParam(value = "category") ProductCategory category
+			@RequestParam(value = "category") ProductCategory category,
+			@RequestParam(value = "status") ProductStatus status
 	) {
-		return ResponseEntity.ok(ApiResponse.success(productService.getAllProductByCategory(category, pageNo, pageSize)));
+		return ResponseEntity.ok(ApiResponse.success(productService.getAllProductByCategory(category,status, pageNo, pageSize)));
 	}
 	
 	@GetMapping("/get-all-product")
 	public ResponseEntity<ApiResponse<PageResponse<ProductResponse>>> getAllProduct(
 			@RequestParam(value = "pageNo", defaultValue = AppConstants.DEFAULT_PAGE_NUMBER, required = false) int pageNo,
-			@RequestParam(value = "pageSize", defaultValue = AppConstants.DEFAULT_PAGE_SIZE, required = false) int pageSize
+			@RequestParam(value = "pageSize", defaultValue = AppConstants.DEFAULT_PAGE_SIZE, required = false) int pageSize,
+			@RequestParam(value = "status", required = false) ProductStatus status
+
 	) {
-		return ResponseEntity.ok(ApiResponse.success(productService.getAllProduct(pageNo, pageSize)));
+		return ResponseEntity.ok(ApiResponse.success(productService.getAllProduct(pageNo, pageSize,status)));
 	}
 
 	@GetMapping("/list-product-favorite")
 	public ResponseEntity<ApiResponse<List<Integer>>> getProduct(@AuthenticationPrincipal Jwt principal) {
 		return ResponseEntity.ok(ApiResponse.success(productService.listFavoriteProduct(principal)));
 	}
+	@GetMapping("/count-pending-product")
+	public ResponseEntity<ApiResponse<Integer>> getMyPendingProductsCount(@AuthenticationPrincipal Jwt principal) {
+		return ResponseEntity.ok(ApiResponse.success(productService.getMyPendingProductsCount(principal)));
+	}
+	@PostMapping("/approved-product")
+	public ApiResponse<String> approvedProduct(@RequestParam(value = "productId") Long productId){
+		return ApiResponse.ok(productService.approvedProduct(productId));
+	}
+
 }

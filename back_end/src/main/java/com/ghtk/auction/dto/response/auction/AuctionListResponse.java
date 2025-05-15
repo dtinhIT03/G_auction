@@ -20,6 +20,7 @@ public class AuctionListResponse {
     Long id;
     Long productId;
     String title;
+    Long ownerId;
     String description;
     String image;
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd HH:mm:ss")
@@ -39,13 +40,14 @@ public class AuctionListResponse {
     @Enumerated(EnumType.STRING)
     AuctionStatus status;
 
-    public AuctionListResponse(Long id, Long productId, String title, String description, String image,
+    public AuctionListResponse(Long id, Long productId, String title,Long ownerId, String description, String image,
                                LocalDateTime createdAt, LocalDateTime confirmDate, LocalDateTime endRegistration,
                                LocalDateTime startTime, LocalDateTime endTime, Long startBid, Long pricePerStep,
                                Long endBid, String status) {
         this.id = id;
         this.productId = productId;
         this.title = title;
+        this.ownerId = ownerId;
         this.description = description;
         this.image = image;
         this.createdAt = createdAt;

@@ -6,5 +6,6 @@ public enum AuctionStatus {
 	CLOSED,
 	IN_PROGRESS,
 	FINISHED,
-	CANCELED
+	CANCELED,
+	REJECTED
 }

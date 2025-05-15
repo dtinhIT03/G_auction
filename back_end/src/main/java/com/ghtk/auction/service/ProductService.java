@@ -8,6 +8,7 @@ import com.ghtk.auction.dto.response.product.ProductListResponse;
 import com.ghtk.auction.dto.response.user.PageResponse;
 import com.ghtk.auction.entity.Product;
 import com.ghtk.auction.enums.ProductCategory;
+import com.ghtk.auction.enums.ProductStatus;
 import org.springframework.security.oauth2.jwt.Jwt;
 
 import java.util.List;
@@ -17,8 +18,9 @@ public interface ProductService {
 	Product createProduct(Jwt principal, ProductCreationRequest request);
 	
 	List<ProductResponse> getAllMyProduct(int pageNo, int pageSize);
+	PageResponse<ProductResponse> getAllMyProductPagination(int pageNo, int pageSize,String status);
 	
-	Product getById(Long id);
+	ProductResponse getById(Long id);
 	
 	List<ProductResponse> getMyByCategory(Jwt principle, ProductFilterRequest category);
 	
@@ -37,9 +39,12 @@ public interface ProductService {
 
 	List<ProductResponse> getTopMostPopularProducts(Long limit);
 	
-	PageResponse<ProductResponse> getAllProductByCategory(ProductCategory category, int pageNo, int pageSize);
+	PageResponse<ProductResponse> getAllProductByCategory(ProductCategory category, ProductStatus status, int pageNo, int pageSize);
 	
-	PageResponse<ProductResponse> getAllProduct(int pageNo, int pageSize);
+	PageResponse<ProductResponse> getAllProduct(int pageNo, int pageSize,ProductStatus status);
 
 	List<Integer> listFavoriteProduct(Jwt principal);
+	Integer getMyPendingProductsCount(Jwt principal);
+
+	String approvedProduct(Long productId);
 }

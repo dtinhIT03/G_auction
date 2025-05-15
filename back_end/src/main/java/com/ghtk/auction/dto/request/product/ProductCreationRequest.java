@@ -4,6 +4,7 @@ package com.ghtk.auction.dto.request.product;
 import com.fasterxml.jackson.databind.PropertyNamingStrategy;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import com.ghtk.auction.enums.ProductCategory;
+import com.ghtk.auction.enums.ProductStatus;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
@@ -28,5 +29,6 @@ public class ProductCreationRequest {
 	
 	@NotEmpty
 	String image;
+	ProductStatus status;
 	
 }

@@ -3,17 +3,13 @@ package com.ghtk.auction.service.impl;
 import java.util.Map;
 
 
+import com.ghtk.auction.dto.stomp.*;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.messaging.simp.stomp.StompHeaderAccessor;
 import org.springframework.stereotype.Service;
 
 import com.ghtk.auction.dto.response.ApiResponse;
-import com.ghtk.auction.dto.stomp.AuctionLastPrice;
-import com.ghtk.auction.dto.stomp.BidMessage;
-import com.ghtk.auction.dto.stomp.CommentMessage;
-import com.ghtk.auction.dto.stomp.ControlMessage;
-import com.ghtk.auction.dto.stomp.NotifyMessage;
 import com.ghtk.auction.service.StompService;
 
 import lombok.RequiredArgsConstructor;
@@ -22,6 +18,11 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class StompServiceImpl implements StompService {
   private final SimpMessagingTemplate messagingTemplate;
+  @Override
+  public void sendToUser(Long auctionId, Object payload) {
+    messagingTemplate.convertAndSend("/topic/auction/" + auctionId + "/control", payload);
+  }
+
 
   @Override
   public void sendGlobalNotification(NotifyMessage message) {
@@ -70,6 +71,12 @@ public class StompServiceImpl implements StompService {
   @Override
   public void broadcastBid(long auctionId, BidMessage bid) {
     messagingTemplate.convertAndSend("/topic/auction/" + auctionId + "/bids", bid);
+  }
+
+  @Override
+  public void broadcastnewEndTime(long auctionId, AuctionNewEndTimeMessage newEndTimeMessage) {
+    messagingTemplate.convertAndSend("/topic/auction/" + auctionId + "/newEndTime", newEndTimeMessage);
+
   }
 
   @Override

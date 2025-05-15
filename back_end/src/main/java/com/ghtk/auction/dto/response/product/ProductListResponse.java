@@ -16,6 +16,8 @@ public class ProductListResponse {
 
     String owner;
 
+    String avatar_url;
+
     String name;
 
     ProductCategory category;
@@ -25,4 +27,6 @@ public class ProductListResponse {
     String image;
 
     Long quantity;
+    String status;
+    Long buyer_id;
 }

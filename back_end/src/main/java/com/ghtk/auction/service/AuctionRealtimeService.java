@@ -1,15 +1,19 @@
 package com.ghtk.auction.service;
 
 import java.util.List;
+import java.util.Optional;
 
+import com.ghtk.auction.dto.redis.AuctionRoom;
 import com.ghtk.auction.dto.request.comment.CommentFilter;
 import com.ghtk.auction.dto.response.auction.AuctionJoinResponse;
 import com.ghtk.auction.dto.stomp.BidMessage;
 import com.ghtk.auction.dto.stomp.CommentMessage;
 import com.ghtk.auction.dto.stomp.NotifyMessage;
 import com.ghtk.auction.entity.Auction;
+import org.quartz.SchedulerException;
 
 public interface AuctionRealtimeService {
+    Optional<AuctionRoom> getAuctionRoom(Long auctionId);
     List<Auction> getJoinableNotis(Long userId);
 
     void checkControlJoin(Long userId, Long auctionId);
@@ -29,7 +33,7 @@ public interface AuctionRealtimeService {
     BidMessage getCurrentPrice(Long userId, Long auctionId);
     List<CommentMessage> getComments(Long userId, Long auctionId, CommentFilter filter);
 
-    BidMessage bid(Long userId, Long auctionId, Long bid);
+    BidMessage bid(Long userId, Long auctionId, Long bid) throws SchedulerException;
     CommentMessage comment(Long userId, Long auctionId, String comment);
     NotifyMessage makeNotification(Long userId, Long auctionId, String message);
 

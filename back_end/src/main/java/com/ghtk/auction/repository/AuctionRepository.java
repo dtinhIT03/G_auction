@@ -31,7 +31,8 @@ public interface AuctionRepository extends JpaRepository<Auction,Long>, AuctionR
 	       a.start_bid AS start_bid,
 	       a.price_per_step AS price_per_step,
 	       a.end_bid AS end_bid,
-	       a.status AS status
+	       a.status AS status,
+		   p.image AS image
 	   FROM
 	       product p
 	   RIGHT JOIN auction a ON p.id = a.product_id

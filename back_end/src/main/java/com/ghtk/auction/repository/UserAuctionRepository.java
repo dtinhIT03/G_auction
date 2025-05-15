@@ -37,4 +37,8 @@ public interface UserAuctionRepository extends JpaRepository<UserAuction, Long> 
       nativeQuery = true
     )
     List<Long> findAuctionIdsByUserId(@Param("userId") Long userId);
+
+    Boolean existsByUserIdAndAuctionId(Long userId, Long auctionId);
+
+    Integer deleteUserAuctionByUserIdAndAuctionId(Long userId, Long auctionId);
 }

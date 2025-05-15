@@ -2,6 +2,7 @@ package com.ghtk.auction.repository.Custom.impl;
 
 import com.ghtk.auction.dto.response.product.ProductListResponse;
 import com.ghtk.auction.enums.ProductCategory;
+import com.ghtk.auction.enums.ProductStatus;
 import com.ghtk.auction.repository.Custom.ProductRepositoryCustom;
 import com.ghtk.auction.repository.UserProductRepository;
 import jakarta.persistence.EntityManager;
@@ -24,8 +25,8 @@ public class ProductRepositoryCustomImpl implements ProductRepositoryCustom {
 
 
     @Override
-    public List<ProductListResponse> findProduct(String key, Pageable pageable, ProductCategory category) {
-        StringBuilder sql = new StringBuilder("SELECT p.id, u.full_name, p.name, p.category, p.description, p.image, COUNT(up.user_id) AS quantity FROM product p ");
+    public List<ProductListResponse> findProduct(String key, Pageable pageable, ProductCategory category, ProductStatus status) {
+        StringBuilder sql = new StringBuilder("SELECT p.id, u.full_name, u.avatar_url, p.name, p.category, p.description, p.image, COUNT(up.user_id) AS quantity, p.status, p.buyer_id FROM product p ");
         StringBuilder where = new StringBuilder("WHERE 1=1 ");
         sql.append("JOIN user u on u.id = p.owner_id ");
         sql.append("LEFT JOIN user_product up on up.product_id = p.id ");
@@ -34,6 +35,9 @@ public class ProductRepositoryCustomImpl implements ProductRepositoryCustom {
         }
         if(category != null) {
             where.append("AND p.category = " + "'" + category.toString() + "' ");
+        }
+        if(status != null) {
+            where.append("AND p.status = "+ "'"+status.toString()+"' ");
         }
         where.append("GROUP BY p.id ");
         where.append("ORDER BY p.id DESC ");
@@ -48,11 +52,14 @@ public class ProductRepositoryCustomImpl implements ProductRepositoryCustom {
             ProductListResponse response = new ProductListResponse();
             response.setId((Long) result[0]);
             response.setOwner((String) result[1]);
-            response.setName((String) result[2]);
-            response.setCategory(ProductCategory.valueOf((String) result[3]));
-            response.setDescription((String) result[4]);
-            response.setImage((String) result[5]);
-            response.setQuantity((Long) result[6]);
+            response.setAvatar_url((String) result[2]);
+            response.setName((String) result[3]);
+            response.setCategory(ProductCategory.valueOf((String) result[4]));
+            response.setDescription((String) result[5]);
+            response.setImage((String) result[6]);
+            response.setQuantity((Long) result[7]);
+            response.setStatus((String) result[8]);
+            response.setBuyer_id((Long) result[9]);
             responses.add(response);
         }
 
@@ -78,7 +85,7 @@ public class ProductRepositoryCustomImpl implements ProductRepositoryCustom {
     
     @Override
     public List<ProductListResponse> getInterestProductTop(Long limit) {
-        StringBuilder sql = new StringBuilder("SELECT p.id, u.full_name, p.name, p.category, p.description, p.image, COUNT(up.user_id) AS quantity FROM product p ");
+        StringBuilder sql = new StringBuilder("SELECT p.id, u.full_name, u.avatar_url, p.name, p.category, p.description, p.image, COUNT(up.user_id) AS quantity FROM product p ");
         StringBuilder where = new StringBuilder(" ");
         sql.append("JOIN user u on u.id = p.owner_id ");
         sql.append("JOIN user_product up on up.product_id = p.id ");
@@ -94,11 +101,12 @@ public class ProductRepositoryCustomImpl implements ProductRepositoryCustom {
             ProductListResponse response = new ProductListResponse();
             response.setId((Long) result[0]);
             response.setOwner((String) result[1]);
-            response.setName((String) result[2]);
-            response.setCategory(ProductCategory.valueOf((String) result[3]));
-            response.setDescription((String) result[4]);
-            response.setImage((String) result[5]);
-            response.setQuantity((Long) result[6]);
+            response.setAvatar_url((String) result[2]);
+            response.setName((String) result[3]);
+            response.setCategory(ProductCategory.valueOf((String) result[4]));
+            response.setDescription((String) result[5]);
+            response.setImage((String) result[6]);
+            response.setQuantity((Long) result[7]);
             responses.add(response);
         }
 

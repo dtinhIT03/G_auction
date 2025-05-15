@@ -10,9 +10,11 @@ import com.ghtk.auction.dto.response.user.PageResponse;
 import com.ghtk.auction.entity.Auction;
 import com.ghtk.auction.entity.UserAuction;
 import com.ghtk.auction.enums.AuctionStatus;
+import com.ghtk.auction.enums.ProductCategory;
 import org.quartz.SchedulerException;
 import org.springframework.security.oauth2.jwt.Jwt;
 
+import java.time.LocalDate;
 import java.util.List;
 
 public interface AuctionService {
@@ -39,5 +41,10 @@ public interface AuctionService {
     void updateStatus(AuctionUpdateStatusRequest request);
     void rejectAuction(Long auctionId);
     PageResponse<AuctionListResponse> getAllAuctionByStatus(AuctionStatus auctionStatus, int pageNo, int pageSize);
-    
+
+    PageResponse<AuctionListResponse> searchAuctionAdvance(int pageNo, int pageSize, AuctionStatus status, ProductCategory category, String name, String startTime, String endTime);
+
+    Boolean checkUserRegistered(Long userId, Long auctionId);
+
+    String UnRegisterJoinAuction(Jwt jwt, Long id);
 }

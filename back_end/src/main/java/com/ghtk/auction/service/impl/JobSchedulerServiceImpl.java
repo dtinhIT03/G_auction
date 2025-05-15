@@ -30,7 +30,43 @@ public class JobSchedulerServiceImpl implements JobSchedulerService {
 	
 	final Scheduler scheduler;
 	final AuctionRepository auctionRepository;
-	
+	public void rescheduleAuctionEndJob(Long auctionId, LocalDateTime newEndTime) throws SchedulerException {
+		String jobName = RedisEndAuction.class.getName() + "-" + auctionId + "end";
+		String groupName = "auction-redis-jobs";
+
+		String jobNameStatus = UpdateAuctionStatus.class.getName() + "-" + auctionId + "-" + AuctionStatus.FINISHED;
+		String groupNameStatus = "auction-status-jobs";
+
+		JobKey jobKey = new JobKey(jobName, groupName);
+		JobKey jobKeyStatus = new JobKey(jobNameStatus, groupNameStatus);
+
+
+		// 1. Xóa job và trigger cũ nếu tồn tại
+		if (scheduler.checkExists(jobKey)) {
+			scheduler.deleteJob(jobKey);
+		}
+		if (scheduler.checkExists(jobKeyStatus)) {
+			scheduler.deleteJob(jobKeyStatus);
+		}
+
+
+		// 2. Tạo job và trigger mới
+		JobDetail job = buildRedisAuctionEndJobDetail(RedisEndAuction.class, auctionId);
+		Trigger trigger = buildRedisAuctionEndJobTrigger(RedisEndAuction.class, auctionId, newEndTime);
+
+		AuctionUpdateStatusRequest request = new AuctionUpdateStatusRequest();
+		request.setAuctionId(auctionId);
+		request.setAuctionStatus(AuctionStatus.FINISHED);
+
+		JobDetail job1 = buildAuctionJobDetail(UpdateAuctionStatus.class, request);
+		Trigger trigger1 = buildAuctionJobTrigger(UpdateAuctionStatus.class, request, newEndTime);
+
+		scheduler.scheduleJob(job1, trigger1);
+
+		// 3. Lập lịch lại với thời gian mới
+		scheduler.scheduleJob(job, trigger);
+	}
+
 	@Override
 	public void scheduleStatusUpdates(Auction auction) throws SchedulerException {
 		// Lên lịch chuyển sang trạng thái CLOSED

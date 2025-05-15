@@ -1,5 +1,6 @@
 package com.ghtk.auction.service;
 
+import com.ghtk.auction.dto.stomp.AuctionNewEndTimeMessage;
 import org.springframework.messaging.Message;
 
 import com.ghtk.auction.dto.response.ApiResponse;
@@ -8,6 +9,7 @@ import com.ghtk.auction.dto.stomp.CommentMessage;
 import com.ghtk.auction.dto.stomp.NotifyMessage;
 
 public interface StompService {
+  public void sendToUser(Long auctionId, Object payload);
   public void sendGlobalNotification(NotifyMessage message);
 
   public void sendMessageReceipt(long userId, Message<?> message, ApiResponse<?> response);
@@ -19,6 +21,8 @@ public interface StompService {
   public void broadcastEndAuction(long auctionId, Long winnerId);
 
   public void broadcastBid(long auctionId, BidMessage bidResponse);
+  public void broadcastnewEndTime(long auctionId, AuctionNewEndTimeMessage newEndTimeMessage);
+
 
   public void broadcastComment(long auctionId, CommentMessage bidResponse);
 

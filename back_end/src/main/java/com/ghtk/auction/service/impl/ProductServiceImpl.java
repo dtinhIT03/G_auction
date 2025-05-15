@@ -9,6 +9,7 @@ import com.ghtk.auction.entity.Product;
 import com.ghtk.auction.entity.User;
 import com.ghtk.auction.entity.UserProduct;
 import com.ghtk.auction.enums.ProductCategory;
+import com.ghtk.auction.enums.ProductStatus;
 import com.ghtk.auction.exception.AlreadyExistsException;
 import com.ghtk.auction.exception.NotFoundException;
 import com.ghtk.auction.repository.ProductRepository;
@@ -52,6 +53,7 @@ public class ProductServiceImpl implements ProductService {
 		product.setCategory(request.getCategory());
 		product.setDescription(request.getDescription());
 		product.setImage(request.getImage());
+		product.setStatus(request.getStatus());
 		
 		return productRepository.save(product);
 		
@@ -70,19 +72,64 @@ public class ProductServiceImpl implements ProductService {
 				.map(product -> new ProductResponse(
 						(String) product[0],
 						(String) product[1],
-						(ProductCategory.valueOf((String) product[2])),
-						(String) product[3],
+						(String) product[2],
+						(ProductCategory.valueOf((String) product[3])),
 						(String) product[4],
-						(Long) product[6],
-						(Long) product[7]
+						(String) product[5],
+						(Long) product[7],
+						(Long) product[8],
+						(String) product[9],
+						(Long) product[10]
 				)).collect(Collectors.toList());
 	}
-	
+
 	@Override
-	public Product getById(Long id) {
-		return productRepository.findById(id).orElseThrow(
+	public PageResponse<ProductResponse> getAllMyProductPagination(int pageNo, int pageSize,String status) {
+		String currentUser = SecurityContextHolder.getContext().getAuthentication().getName();
+		User user = userRepository.findByEmail(currentUser);
+		Long userId = user.getId();
+		Long totalElements = productRepository.countByOwnerId(userId);
+		List<Object[]> products = productRepository.findByOwnerIdNoPagination(userId, status);
+		List<ProductResponse> content =  products.stream()
+				.map(product -> new ProductResponse(
+						(String) product[0],
+						(String) product[1],
+						(String) product[2],
+						(ProductCategory.valueOf((String) product[3])),
+						(String) product[4],
+						(String) product[5],
+						(Long) product[7],
+						(Long) product[8],
+						(String) product[9],
+						(Long) product[10]
+				)).collect(Collectors.toList());
+		PageResponse<ProductResponse> pageResponse = new PageResponse<>();
+		pageResponse.setPageNo(pageNo);
+		pageResponse.setPageSize(pageSize);
+		pageResponse.setContent(content);
+		pageResponse.setTotalElements(totalElements);
+		return pageResponse;
+	}
+
+	@Override
+	public ProductResponse getById(Long id) {
+		 Product product =  productRepository.findById(id).orElseThrow(
 				() -> new NotFoundException("Khong tim thay san pham")
 		);
+		 User user = userRepository.findById(product.getOwnerId()).orElseThrow(
+				 () -> new NotFoundException("Khong tim thay nguoi ban!")
+		 );
+
+		return ProductResponse.builder()
+				.productId(product.getId())
+				.owner(user.getFullName())
+				.name(product.getName())
+				.image(product.getImage())
+				.category(product.getCategory())
+				.description(product.getDescription())
+				.status(String.valueOf(product.getStatus()))
+				.quantity(getInterestProduct(product.getId()))
+				.build();
 	}
 	
 	
@@ -162,11 +209,14 @@ public class ProductServiceImpl implements ProductService {
 				.map(product ->new ProductResponse(
 						(String) product[0],
 						(String) product[1],
-						(ProductCategory.valueOf((String) product[2])),
-						(String) product[3],
+						(String) product[2],
+						(ProductCategory.valueOf((String) product[3])),
 						(String) product[4],
-						(Long) product[5],
-						(Long) product[6]
+						(String) product[5],
+						(Long) product[6],
+						(Long) product[7],
+						(String) product[8],
+						(Long) product[9]
 				)).collect(Collectors.toList());
 		
 	}
@@ -203,7 +253,7 @@ public class ProductServiceImpl implements ProductService {
 	@Override
 	public PageResponse<ProductListResponse> searchProduct(String key, int pageNo, int pageSize) {
 		Pageable pageable= PageRequest.of(pageNo,pageSize);
-		List<ProductListResponse> products = productRepository.findProduct(key, pageable, null);
+		List<ProductListResponse> products = productRepository.findProduct(key, pageable, null,null);
 		PageResponse<ProductListResponse> pageAuctionResponse = new PageResponse<>();
 		pageAuctionResponse.setPageNo(pageNo);
 		pageAuctionResponse.setPageSize(pageSize);
@@ -220,6 +270,7 @@ public class ProductServiceImpl implements ProductService {
 		return products.stream().map(product ->
 				ProductResponse.builder()
 						.owner(product.getOwner())
+						.avatar_url(product.getAvatar_url())
 						.image(product.getImage())
 						.productId(product.getId())
 						.description(product.getDescription())
@@ -231,16 +282,17 @@ public class ProductServiceImpl implements ProductService {
 	}
 	
 	@Override
-	public PageResponse<ProductResponse> getAllProductByCategory(ProductCategory category, int pageNo, int pageSize) {
+	public PageResponse<ProductResponse> getAllProductByCategory(ProductCategory category,ProductStatus status, int pageNo, int pageSize) {
 		Pageable pageable= PageRequest.of(pageNo,pageSize);
 		
-		Long total = productRepository.countByCategory(category);
+		Long total = productRepository.countByCategoryAndStatus(category,status);
 		
-		List<ProductListResponse> products = productRepository.findProduct(null, pageable, category);
+		List<ProductListResponse> products = productRepository.findProduct(null, pageable, category,status);
 
 		List<ProductResponse> content = products.stream().map(product ->
 				ProductResponse.builder()
 						.owner(product.getOwner())
+						.avatar_url(product.getAvatar_url())
 						.image(product.getImage())
 						.productId(product.getId())
 						.description(product.getDescription())
@@ -259,22 +311,25 @@ public class ProductServiceImpl implements ProductService {
 	}
 	
 	@Override
-	public PageResponse<ProductResponse> getAllProduct(int pageNo, int pageSize) {
+	public PageResponse<ProductResponse> getAllProduct(int pageNo, int pageSize,ProductStatus status) {
 		Pageable pageable= PageRequest.of(pageNo,pageSize);
 		
 		Long total = productRepository.countAll();
 		
-		List<ProductListResponse> products = productRepository.findProduct(null, pageable, null);
+		List<ProductListResponse> products = productRepository.findProduct(null, pageable, null,status);
 		
 		List<ProductResponse> content = products.stream().map(product ->
 				ProductResponse.builder()
 						.owner(product.getOwner())
+						.avatar_url(product.getAvatar_url())
 						.image(product.getImage())
 						.productId(product.getId())
 						.description(product.getDescription())
 						.category(product.getCategory())
 						.name(product.getName())
 						.quantity(product.getQuantity())
+						.status(product.getStatus())
+						.buyer_id(product.getBuyer_id())
 						.build()
 				).toList();
 		PageResponse<ProductResponse> pageProductResponse = new PageResponse<>();
@@ -289,5 +344,24 @@ public class ProductServiceImpl implements ProductService {
 	public List<Integer> listFavoriteProduct(Jwt principal) {
 		Long userId = (Long) principal.getClaims().get("id");
 		return productRepository.checkFavoriteProduct(userId);
+	}
+
+	@Override
+	public Integer getMyPendingProductsCount(Jwt principal) {
+		Long userId = (Long) principal.getClaims().get("id");
+		return productRepository.countByOwnerIdAndStatus(userId,ProductStatus.PENDING);
+	}
+
+	@Override
+	public String approvedProduct(Long productId) {
+		Product product = productRepository.findById(productId).orElseThrow(
+				()-> new NotFoundException("khong tim thay san pham trung voi Id"));
+		if(product.getStatus().equals(ProductStatus.PENDING)){
+			product.setStatus(ProductStatus.APPROVED);
+			productRepository.save(product);
+			return "duyệt sản phẩm thành công";
+		}else{
+			throw new RuntimeException("khong the duyet san pham");
+		}
 	}
 }

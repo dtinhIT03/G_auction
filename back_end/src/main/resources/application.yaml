@@ -4,10 +4,14 @@ spring:
     url: ${DATABASE_URL:}
     username: ${DATABASE_USERNAME:}
     password: ${DATABASE_PASSWORD:}
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 15MB
 
   jpa:
     hibernate:
-      ddl-auto: validate
+      ddl-auto: update
     show-sql: true
 #    properties:
 #      hibernate:
@@ -59,7 +63,7 @@ jwt:
   refreshable-duration: ${JWT_REFRESH:}
 
 server:
-  port: 8080
+  port: 8082
   servlet:
     context-path: /auction
     
@@ -76,6 +80,16 @@ cloudinary:
 
 auction:
   schedule:
-    regis_duration: 2
-    start_delay: 3
+    regis_duration: 1
+    start_delay: 2
     auction_duration: 3
+
+payment:
+  vnPay:
+    url: ${PAY_URL}
+    tmnCode: ${TMN_CODE}
+    secretKey: ${SECRET_KEY}
+    returnUrl: ${RETURN_URL}
+    version: ${VERSION}
+    command: ${COMMAND}
+    orderType: ${ORDER_TYPE}

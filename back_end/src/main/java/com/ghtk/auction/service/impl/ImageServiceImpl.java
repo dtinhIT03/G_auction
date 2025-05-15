@@ -1,9 +1,11 @@
 package com.ghtk.auction.service.impl;
 
 import com.ghtk.auction.component.CloudinaryComponent;
+import com.ghtk.auction.dto.request.uploadImage.UploadImage;
 import com.ghtk.auction.exception.UploadException;
 import com.ghtk.auction.service.ImageService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -24,6 +26,13 @@ public class ImageServiceImpl implements ImageService {
         } catch (IOException e) {
             throw new UploadException(e.getMessage());
         }
+    }
+
+    @Override
+    public List<String> uploadListImages(List<MultipartFile> files) {
+
+            return cloudinaryComponent.uploadListFile(files);
+
     }
 
     @Override

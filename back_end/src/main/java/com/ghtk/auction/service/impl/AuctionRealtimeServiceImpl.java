@@ -1,13 +1,25 @@
 package com.ghtk.auction.service.impl;
 
+import java.math.BigDecimal;
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
+
 import com.ghtk.auction.dto.redis.AuctionBid;
 import com.ghtk.auction.dto.redis.AuctionRoom;
+import com.ghtk.auction.dto.request.PaymentRequest;
 import com.ghtk.auction.dto.request.comment.CommentFilter;
 import com.ghtk.auction.dto.response.auction.AuctionJoinResponse;
 
+import com.ghtk.auction.dto.stomp.AuctionNewEndTimeMessage;
+import com.ghtk.auction.enums.PaymentStatus;
+import com.ghtk.auction.event.*;
+import com.ghtk.auction.service.PaymentSerivceImpl;
+import org.quartz.JobKey;
+import org.quartz.Scheduler;
+import org.quartz.SchedulerException;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.util.Pair;
 import org.springframework.stereotype.Service;
@@ -21,11 +33,6 @@ import com.ghtk.auction.entity.Product;
 import com.ghtk.auction.entity.TimeHistory;
 import com.ghtk.auction.entity.UserAuction;
 import com.ghtk.auction.entity.UserAuctionHistory;
-import com.ghtk.auction.event.AuctionEndEvent;
-import com.ghtk.auction.event.AuctionRoomOpenEvent;
-import com.ghtk.auction.event.AuctionStartEvent;
-import com.ghtk.auction.event.BidEvent;
-import com.ghtk.auction.event.CommentEvent;
 import com.ghtk.auction.exception.AlreadyExistsException;
 import com.ghtk.auction.exception.ForbiddenException;
 import com.ghtk.auction.exception.NotFoundException;
@@ -59,9 +66,17 @@ public class AuctionRealtimeServiceImpl implements AuctionRealtimeService {
   final CommentRepository commentRepository;
 
   final AuctionSessionRepository auctionSessionRepository;
+  final JobSchedulerServiceImpl jobScheduler;
 
   final ApplicationEventPublisher eventPublisher;
-  
+  final PaymentSerivceImpl paymentSerivce;
+
+
+  @Override
+  public Optional<AuctionRoom> getAuctionRoom(Long auctionId) {
+    return auctionSessionRepository.getAuctionRoom(auctionId);
+  }
+
   @Override
   public List<Auction> getJoinableNotis(Long userId) {
     return auctionSessionRepository.getJoinableByUser(userId).stream()
@@ -214,7 +229,7 @@ public class AuctionRealtimeServiceImpl implements AuctionRealtimeService {
   }
 	
 	@Override
-	public synchronized BidMessage bid(Long userId, Long auctionId, Long bid) {
+	public synchronized BidMessage bid(Long userId, Long auctionId, Long bid) throws SchedulerException {
     AuctionRoom info = auctionSessionRepository.getAuctionRoom(auctionId).orElseThrow(
         () -> new ForbiddenException("Phien dau gia chua bat dau")
     );
@@ -234,6 +249,16 @@ public class AuctionRealtimeServiceImpl implements AuctionRealtimeService {
     if (!valid) {
       throw new ForbiddenException("Gia dau gia khong hop le");
     }
+    LocalDateTime now = LocalDateTime.now();
+    LocalDateTime endTime = info.getEndTime();
+    if(isNearEndTime(now,endTime)){
+      LocalDateTime newEndTime = now.plusMinutes(2);
+      info.setEndTime(newEndTime);
+      auctionSessionRepository.setAuctionRoom(auctionId,info);
+      jobScheduler.rescheduleAuctionEndJob(auctionId, newEndTime);
+      eventPublisher.publishEvent(new AuctionNewEndTimeEvent(auctionId,newEndTime));
+
+    }
     
     LocalDateTime time = LocalDateTime.now();
 
@@ -247,6 +272,11 @@ public class AuctionRealtimeServiceImpl implements AuctionRealtimeService {
     eventPublisher.publishEvent(new BidEvent(auctionId, userId, bid, time));
     return message;
 	}
+    private boolean isNearEndTime(LocalDateTime now, LocalDateTime endTime){
+      Duration duration = Duration.between(now,endTime);
+      return duration.toMinutes() < 2;
+    }
+
 
   @Override
   public CommentMessage comment(Long userId, Long auctionId, String message) {
@@ -293,6 +323,7 @@ public class AuctionRealtimeServiceImpl implements AuctionRealtimeService {
         .ownerId(product.getOwnerId())
         .startBid(auction.getStartBid())
         .pricePerStep(auction.getPricePerStep())
+        .endTime(auction.getEndTime())
         .isStarted(false)
         .build();
     auctionSessionRepository.setAuctionRoom(auctionId, room);
@@ -339,16 +370,28 @@ public class AuctionRealtimeServiceImpl implements AuctionRealtimeService {
       List<BidMessage> bids = auctionSessionRepository.getBids(auctionId);
 
       if (!bids.isEmpty()) {
-        BidMessage lastBid = bids.get(bids.size() - 1);
-        if (lastBid.getBid() != lastPrice) {
-          log.error("Gia cuoi cung khong khop");
+        for(BidMessage lastBid : bids){
+          if (lastBid.getBid() == lastPrice) {
+            product.setBuyerId(lastBid.getUserId());
+            productRepository.save(product);
+          }
         }
-
-        product.setBuyerId(lastBid.getUserId());
-        productRepository.save(product);
+        PaymentRequest paymentRequest = PaymentRequest.builder()
+                .auction_id(auctionId)
+                .buyer_id(product.getBuyerId())
+                .deadline(LocalDateTime.now().plusDays(7))
+                .depositAmount(
+                        BigDecimal.valueOf(auction.getStartBid())
+                                .multiply(BigDecimal.valueOf(0.05))
+                                .longValue()
+                )
+                .status(PaymentStatus.PENDING)
+                .build();
+        paymentSerivce.create(paymentRequest);
 
         auction.setEndBid(lastPrice);
         auctionRepository.save(auction);
+
 
         saveBids(auctionId, bids);
       } 
@@ -378,27 +421,35 @@ public class AuctionRealtimeServiceImpl implements AuctionRealtimeService {
   }
 
   private void leaveAllAuctionUser(Long auctionId) {
-    LocalDateTime leaveTime = LocalDateTime.now();
 
-    List<Pair<Long, LocalDateTime>> joins = auctionSessionRepository.getJoinsByAuction(auctionId);
-    auctionSessionRepository.deleteAllJoinByAuction(auctionId);
 
-    List<TimeHistory> entries = new ArrayList<>();
-    joins.forEach(pair -> {
-      try {
-        Long userId = pair.getFirst();
-        LocalDateTime joinTime = pair.getSecond();
-        UserAuction ua = userAuctionRepository.findByUserIdAndAuctionId(userId, auctionId);
-        TimeHistory entry = TimeHistory.builder()
-            .userAuction(ua)
-            .joinTime(joinTime)
-            .outTime(leaveTime)
-            .build();
-        entries.add(entry);
-      } catch (Exception e) {
-        log.error("Loi khi roi phien dau gia", e);
-      }
-    });
-    timeHistoryRepository.saveAll(entries);
+    try {
+      LocalDateTime leaveTime = LocalDateTime.now();
+
+      List<Pair<Long, LocalDateTime>> joins = auctionSessionRepository.getJoinsByAuction(auctionId);
+      auctionSessionRepository.deleteAllJoinByAuction(auctionId);
+
+      List<TimeHistory> entries = new ArrayList<>();
+      joins.forEach(pair -> {
+        try {
+          Long userId = pair.getFirst();
+          LocalDateTime joinTime = pair.getSecond();
+          UserAuction ua = userAuctionRepository.findByUserIdAndAuctionId(userId, auctionId);
+          TimeHistory entry = TimeHistory.builder()
+                  .userAuction(ua)
+                  .joinTime(joinTime)
+                  .outTime(leaveTime)
+                  .build();
+          entries.add(entry);
+        } catch (Exception e) {
+          log.error("Loi khi roi phien dau gia", e);
+        }
+      });
+      timeHistoryRepository.saveAll(entries);
+    }catch (Exception e){
+      log.error("Loi khi roi phien dau gia", e);
+
+    }
+
   }
 }

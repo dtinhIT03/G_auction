@@ -13,11 +13,14 @@ public interface UserProductRepository extends JpaRepository<UserProduct, Long> 
 	
 	@Query(value = "SELECT\n" +
 			"    u.full_name AS owner,\n" +
+			"    u.avatar_l AS avatar,\n" +
 			"    p.name AS name,\n" +
 			"    p.category AS category,\n" +
 			"    p.description AS description,\n" +
 			"    p.image AS image, \n" +
 			"	COUNT(up.user_id) as quantity \n" +
+			"	p.status) as status \n" +
+			"	p.buyer_id) as buyer_id \n" +
 			"FROM\n" +
 			"    user_product up\n" +
 			"JOIN product p ON\n" +

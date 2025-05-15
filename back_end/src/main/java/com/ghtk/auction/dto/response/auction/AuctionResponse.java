@@ -38,4 +38,5 @@ public class AuctionResponse {
 	
 	@Enumerated(EnumType.STRING)
 	AuctionStatus status;
+	String image;
 }

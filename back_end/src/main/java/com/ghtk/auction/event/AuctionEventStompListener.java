@@ -2,6 +2,7 @@ package com.ghtk.auction.event;
 
 import java.util.List;
 
+import com.ghtk.auction.dto.stomp.AuctionNewEndTimeMessage;
 import org.springframework.context.event.EventListener;
 import org.springframework.messaging.simp.stomp.StompHeaderAccessor;
 import org.springframework.scheduling.annotation.Async;
@@ -39,7 +40,14 @@ public class AuctionEventStompListener {
         event.getAuctionId(), 
         new BidMessage(event.getUserId(), event.getPrice(), event.getTime()));
   }
-
+  @Async
+  @EventListener
+  public void handlenewEndTime(AuctionNewEndTimeEvent event) {
+    System.out.println("listen bid eventtest");
+    stompService.broadcastnewEndTime(
+            event.getAuctionId(),
+            new AuctionNewEndTimeMessage(event.newEndTime));
+  }
   @Async
   @EventListener
   public void handleCommentEvent(CommentEvent event) {

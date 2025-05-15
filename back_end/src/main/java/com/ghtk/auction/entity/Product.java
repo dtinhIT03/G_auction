@@ -1,6 +1,7 @@
 package com.ghtk.auction.entity;
 
 import com.ghtk.auction.enums.ProductCategory;
+import com.ghtk.auction.enums.ProductStatus;
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
@@ -49,4 +50,8 @@ public class Product {
     
     @Column(name = "buyer_id")
     Long buyerId;
+
+    @Column(name = "status", nullable = false)
+    @Enumerated(EnumType.STRING)
+    ProductStatus status;
 }

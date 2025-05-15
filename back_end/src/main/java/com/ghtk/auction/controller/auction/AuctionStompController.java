@@ -1,5 +1,6 @@
 package com.ghtk.auction.controller.auction;
 
+import org.quartz.SchedulerException;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.MessageHeaders;
 import org.springframework.messaging.handler.annotation.DestinationVariable;
@@ -20,6 +21,9 @@ import com.ghtk.auction.service.StompService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+
+import java.util.HashMap;
+import java.util.Map;
 
 @Slf4j
 @Controller
@@ -70,7 +74,24 @@ public class AuctionStompController {
     System.out.println("subscribing to comment channel");
     stompService.sendMessageReceipt(userId, message, ApiResponse.success("ok"));
   }
+  @MessageMapping("/auction/{id}/new-end-time")
+  // @SendTo("/topic/auction/{id}/bids")
+  public void getNewEndTime(
+          @DestinationVariable("id") Long auctionId,
+          @Header("userId") Long userId,
+          Message<?> message) throws SchedulerException {
 
+    auctionRealtimeService.getAuctionRoom(auctionId).ifPresent(room -> {
+      if (room.isStarted() && room.getEndTime() != null) {
+        // Gửi endTime hiện tại về cho người dùng mới
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("type", "auction-extended");
+        payload.put("newEndTime", room.getEndTime()); // cần là array [2025,5,12,15,30,0,...]
+
+        stompService.sendMessageReceipt(userId, message, ApiResponse.success(payload));
+      }
+    });
+  }
   @MessageMapping("/auction/{id}/last-price")
   public void getLastPrice(
       @DestinationVariable("id") Long auctionId, 
@@ -86,10 +107,12 @@ public class AuctionStompController {
       @DestinationVariable("id") Long auctionId, 
       @Header("userId") Long userId,
       @Payload @Valid BidRequest bid,
-      Message<?> message) {
+      Message<?> message) throws SchedulerException {
     auctionRealtimeService.bid(userId, auctionId, bid.getBid());  
     stompService.sendMessageReceipt(userId, message, ApiResponse.success("ok"));
   }
+
+
 
   @MessageMapping("/auction/{id}/comment")
   public void sendComment(

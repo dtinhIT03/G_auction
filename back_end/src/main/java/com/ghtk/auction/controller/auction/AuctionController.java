@@ -13,6 +13,7 @@ import com.ghtk.auction.dto.stomp.CommentMessage;
 import com.ghtk.auction.entity.Auction;
 import com.ghtk.auction.entity.UserAuction;
 import com.ghtk.auction.enums.AuctionStatus;
+import com.ghtk.auction.enums.ProductCategory;
 import com.ghtk.auction.scheduler.jobs.UpdateAuctionStatus;
 import com.ghtk.auction.service.AuctionService;
 import com.ghtk.auction.service.JobSchedulerService;
@@ -23,12 +24,15 @@ import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import org.quartz.SchedulerException;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 
 @RestController
@@ -83,6 +87,14 @@ public class AuctionController {
 			@PathVariable Long id
 	) {
 		return ResponseEntity.ok(ApiResponse.success(auctionService.registerJoinAuction(jwt, id)));
+	}
+
+	@PostMapping("/{id}/un-regis-join")
+	public ResponseEntity<ApiResponse<String>> unRegisJoinAuction(
+			@AuthenticationPrincipal Jwt jwt,
+			@PathVariable Long id
+	) {
+		return ResponseEntity.ok(ApiResponse.success(auctionService.UnRegisterJoinAuction(jwt, id)));
 	}
 	
 	@PreAuthorize("hasRole('ADMIN')")
@@ -180,8 +192,33 @@ public class AuctionController {
 	public ResponseEntity<ApiResponse<PageResponse<AuctionListResponse>>> getAllAuctionByStatus(
 			@RequestParam(value = "pageNo", defaultValue = AppConstants.DEFAULT_PAGE_NUMBER, required = false) int pageNo,
 			@RequestParam(value = "pageSize", defaultValue = AppConstants.DEFAULT_PAGE_SIZE, required = false) int pageSize,
-			@RequestParam(value ="statusAuction") AuctionStatus status
+			@RequestParam(value ="statusAuction", required = false ) AuctionStatus status
 	){
 		return ResponseEntity.ok(ApiResponse.success(auctionService.getAllAuctionByStatus(status,pageNo, pageSize)));
+	}
+
+	//search list auction by status , category, time search theo ngày , nameProduct, sắp xếp
+	@GetMapping("/searchAuctionAdvance")
+	public ResponseEntity<ApiResponse<PageResponse<AuctionListResponse>>> searchAuctionAdvance(
+			@RequestParam(value = "pageNo", defaultValue = AppConstants.DEFAULT_PAGE_NUMBER, required = false) int pageNo,
+			@RequestParam(value = "pageSize", defaultValue = AppConstants.DEFAULT_PAGE_SIZE, required = false) int pageSize,
+			@RequestParam(value ="statusAuction", required = false ) AuctionStatus status,
+			@RequestParam(value = "category",required = false)ProductCategory category,
+			@RequestParam(value = "nameProduct",required = false) String name,
+			@RequestParam(value = "startTime",required = false) String startTime,
+			@RequestParam(value = "endTime",required = false) String endTime
+			){
+
+		System.out.println("StartTime nhận được: " + startTime);
+		System.out.println("EndTime nhận được: " + endTime);
+		return ResponseEntity.ok(ApiResponse.success(auctionService.searchAuctionAdvance(pageNo, pageSize,status,category,name,startTime,endTime)));
+	}
+
+	//check user có đăng ký ko
+	@GetMapping("/checkUserRegistered/{auctionId}")
+	public ResponseEntity<ApiResponse<Boolean>> checkUserRegistered(@AuthenticationPrincipal Jwt principal
+			,@PathVariable(value = "auctionId") Long auctionId){
+		Long userId = (Long) principal.getClaim("id");
+		return ResponseEntity.ok(ApiResponse.success(auctionService.checkUserRegistered(userId,auctionId)));
 	}
 }

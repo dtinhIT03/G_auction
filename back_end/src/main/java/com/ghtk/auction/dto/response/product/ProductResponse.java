@@ -12,6 +12,8 @@ import lombok.experimental.FieldDefaults;
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class ProductResponse {
 	String owner;
+
+	String avatar_url;
 	
 	String name;
 	
@@ -24,6 +26,10 @@ public class ProductResponse {
 	Long productId;
 	
 	Long quantity;
+
+	String status;
+
+	Long buyer_id;
 	
 //	public ProductResponse(String owner, String name, ProductCategory category, String description, String image, Long productId) {
 //		this.owner = owner;

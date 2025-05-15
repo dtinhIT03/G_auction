@@ -16,9 +16,12 @@ import java.time.LocalDate;
 @FieldDefaults(level = AccessLevel.PRIVATE)
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class UserResponse {
-	
+	Long id;
+
 	String email;
+
 	Boolean isVerified;
+
 	String fullName;
 	
 	@JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd")
@@ -34,7 +37,6 @@ public class UserResponse {
 	
 	UserStatus statusAccount;
 	
-	Long id;
-	
+
 	
 }
